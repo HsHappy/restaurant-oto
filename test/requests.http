@@ -1,0 +1,151 @@
+### Enterprise RMS - Edge Core POS REST API Scenarios
+@baseUrl = http://localhost:3000
+@managerPin = 1234
+
+### 1. Health & Edge Node Status
+GET {{baseUrl}}/health
+Accept: application/json
+
+### 2. List All Tables
+GET {{baseUrl}}/api/v1/tables
+Accept: application/json
+
+### 3. Fetch Menu (Categories & Products)
+GET {{baseUrl}}/api/v1/orders/menu
+Accept: application/json
+
+### 4. Lock Table (Optimistic Concurrency Control)
+# Replace {tableId} with actual table id from list
+POST {{baseUrl}}/api/v1/tables/{{tableId}}/lock
+Content-Type: application/json
+
+{
+  "lockedBy": "Garson-Ahmet-El-Terminali"
+}
+
+### 5. Open Table & Generate Active Order
+POST {{baseUrl}}/api/v1/tables/{{tableId}}/open
+Content-Type: application/json
+
+{
+  "waiterId": "00000000-0000-0000-0000-000000000001"
+}
+
+### 6. Add Items to Order with Modifiers
+# Replace {orderId} and {productId}
+POST {{baseUrl}}/api/v1/orders/{{orderId}}/items
+Content-Type: application/json
+
+{
+  "productId": "{{productId}}",
+  "quantity": 2,
+  "modifiers": [
+    { "name": "Ekstra Cheddar Peyniri", "extra_price": 25.00 },
+    { "name": "Acı Sos", "extra_price": 0.00 }
+  ]
+}
+
+### 7. Get Order Details (Subtotal, Tax, Grand Total)
+GET {{baseUrl}}/api/v1/orders/{{orderId}}
+Accept: application/json
+
+### 8. Apply 10% Discount (Requires 4-Eye Manager PIN)
+POST {{baseUrl}}/api/v1/orders/{{orderId}}/discount
+Content-Type: application/json
+
+{
+  "discountType": "PERCENT",
+  "amount": 10,
+  "managerPin": "{{managerPin}}"
+}
+
+### 9. Split Bill - Equal Division (3 People)
+POST {{baseUrl}}/api/v1/orders/{{orderId}}/split
+Content-Type: application/json
+
+{
+  "type": "EQUAL",
+  "payload": {
+    "parts": 3
+  }
+}
+
+### 10. Split Bill - Item Level (Transfer items)
+POST {{baseUrl}}/api/v1/orders/{{orderId}}/split
+Content-Type: application/json
+
+{
+  "type": "BY_ITEM",
+  "payload": {
+    "itemSplits": [
+      { "itemId": "{{itemId}}", "quantity": 1 }
+    ]
+  }
+}
+
+### 11. Process Partial Cash Payment
+POST {{baseUrl}}/api/v1/payments
+Content-Type: application/json
+
+{
+  "orderId": "{{orderId}}",
+  "method": "CASH",
+  "amount": 250.00
+}
+
+### 12. Process Remaining Credit Card Payment (Settles Order & Sets Table DIRTY)
+POST {{baseUrl}}/api/v1/payments
+Content-Type: application/json
+
+{
+  "orderId": "{{orderId}}",
+  "method": "CREDIT_CARD",
+  "amount": 150.00,
+  "transactionReference": "POS-PROV-123456"
+}
+
+### 13. Clean Table (Transition DIRTY -> AVAILABLE)
+PATCH {{baseUrl}}/api/v1/tables/{{tableId}}/status
+Content-Type: application/json
+
+{
+  "status": "AVAILABLE"
+}
+
+### 14. Print Customer Bill Receipt (ESC/POS Raw TCP 9100)
+POST {{baseUrl}}/api/v1/printer/receipt
+Content-Type: application/json
+
+{
+  "orderId": "{{orderId}}",
+  "openDrawer": true
+}
+
+### 15. Print Kitchen Station Ticket (GRILL)
+POST {{baseUrl}}/api/v1/printer/kitchen
+Content-Type: application/json
+
+{
+  "orderId": "{{orderId}}",
+  "station": "GRILL"
+}
+
+### 16. Trigger Cash Drawer Kick Signal
+POST {{baseUrl}}/api/v1/printer/drawer
+Content-Type: application/json
+
+{
+  "managerPin": "{{managerPin}}"
+}
+
+### 17. Inspect Printer Offline Queue
+GET {{baseUrl}}/api/v1/printer/queue
+Accept: application/json
+
+### 18. View Cryptographic Audit Logs
+GET {{baseUrl}}/api/v1/audit/logs?limit=20
+Accept: application/json
+
+### 19. Verify SHA-256 Audit Trail Integrity
+GET {{baseUrl}}/api/v1/audit/verify
+Accept: application/json

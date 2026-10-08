@@ -1,0 +1,43 @@
+{
+  "name": "restaurant-edge-core",
+  "version": "1.0.0",
+  "description": "Enterprise Restaurant Management System - Edge Core POS & Hardware Service",
+  "main": "dist/server.js",
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "migrate": "tsx src/infrastructure/database/migrator.ts",
+    "seed": "tsx src/infrastructure/database/seed.ts",
+    "test": "tsx test/integration-test.ts"
+  },
+  "keywords": [
+    "pos",
+    "restaurant",
+    "edge",
+    "fastify",
+    "escpos",
+    "offline-first"
+  ],
+  "author": "Enterprise RMS Architecture Team",
+  "license": "UNLICENSED",
+  "dependencies": {
+    "@electric-sql/pglite": "^0.2.16",
+    "@fastify/cors": "^10.0.2",
+    "@fastify/websocket": "^11.0.2",
+    "dotenv": "^16.4.7",
+    "fastify": "^5.2.1",
+    "pg": "^8.13.3",
+    "pino": "^9.6.0",
+    "pino-pretty": "^13.0.0",
+    "ws": "^8.18.0",
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.9",
+    "@types/pg": "^8.11.11",
+    "@types/ws": "^8.5.14",
+    "tsx": "^4.19.3",
+    "typescript": "^5.7.3"
+  }
+}

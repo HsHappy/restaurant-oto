@@ -129,24 +129,34 @@ class DatabaseManager implements IDbClient {
   }
 
   public async runMigrations(): Promise<void> {
-    const migrationFilePath = path.join(__dirname, 'migrations', '001_initial_schema.sql');
-    if (!fs.existsSync(migrationFilePath)) {
-      console.warn(`[DatabaseManager] Migration file not found at ${migrationFilePath}`);
+    const migrationsDir = path.join(__dirname, 'migrations');
+    if (!fs.existsSync(migrationsDir)) {
+      console.warn(`[DatabaseManager] Migrations directory not found at ${migrationsDir}`);
       return;
     }
 
-    const sql = fs.readFileSync(migrationFilePath, 'utf-8');
-    console.log('[DatabaseManager] Applying database migrations...');
+    const files = fs
+      .readdirSync(migrationsDir)
+      .filter((file) => file.endsWith('.sql'))
+      .sort();
 
-    // PGlite can execute multi-statement SQL strings directly with exec
-    if (this.mode === 'PGLITE' && this.pglite) {
-      await this.pglite.exec(sql);
-    } else if (this.mode === 'POSTGRES' && this.pgPool) {
-      await this.pgPool.query(sql);
+    console.log(`[DatabaseManager] Applying ${files.length} database migration(s)...`);
+
+    for (const file of files) {
+      const filePath = path.join(migrationsDir, file);
+      const sql = fs.readFileSync(filePath, 'utf-8');
+      console.log(`[DatabaseManager] Executing migration: ${file}`);
+
+      if (this.mode === 'PGLITE' && this.pglite) {
+        await this.pglite.exec(sql);
+      } else if (this.mode === 'POSTGRES' && this.pgPool) {
+        await this.pgPool.query(sql);
+      }
     }
 
-    console.log('[DatabaseManager] Migrations applied successfully.');
+    console.log('[DatabaseManager] All migrations applied successfully.');
   }
+
 
   public async close(): Promise<void> {
     if (this.pgPool) {

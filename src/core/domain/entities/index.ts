@@ -56,6 +56,8 @@ export interface OrderItem {
   order_id: string;
   product_id: string;
   product_name?: string;
+  preparation_station?: PreparationStation | string;
+  standard_prep_time_minutes?: number;
   quantity: number;
   unit_price: number;
   total_price: number;
@@ -63,9 +65,47 @@ export interface OrderItem {
   is_complimentary: boolean;
   cancel_reason?: string | null;
   selected_modifiers: ModifierItem[];
+  fire_at?: Date | null;
+  prep_started_at?: Date | null;
+  ready_at?: Date | null;
+  bumped_by?: string | null;
+  customer_notes?: string | null;
   created_at: Date;
   bumped_at?: Date | null;
 }
+
+export interface KdsStationLog {
+  id: string;
+  order_id: string;
+  order_item_id: string;
+  station: string;
+  action: string;
+  actor_id?: string | null;
+  previous_status?: string | null;
+  new_status?: string | null;
+  created_at: Date;
+}
+
+export interface KdsTicketItem extends OrderItem {
+  is_held: boolean;
+  time_remaining_seconds: number;
+}
+
+export interface KdsTicket {
+  order_id: string;
+  order_number: string;
+  table_id?: string | null;
+  table_number: string;
+  waiter_id: string;
+  opened_at: Date;
+  elapsed_seconds: number;
+  max_prep_time_minutes: number;
+  sla_status: 'NORMAL' | 'WARNING' | 'CRITICAL';
+  station: string;
+  items: KdsTicketItem[];
+  all_items_ready: boolean;
+}
+
 
 export interface Order {
   id: string;

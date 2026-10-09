@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Enterprise RMS - Mutfak Ekranı (KDS)</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card-bg: #1e293b;
+      --card-border: #334155;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --green: #10b981;
+      --yellow: #f59e0b;
+      --red: #ef4444;
+      --blue: #3b82f6;
+      --purple: #8b5cf6;
+      --accent: #f97316;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+    body { background-color: var(--bg); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; overflow-x: hidden; }
+
+    /* Top Bar */
+    header {
+      background: #020617;
+      padding: 12px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 2px solid #1e293b;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+
+    .brand { display: flex; align-items: center; gap: 12px; }
+    .brand h1 { font-size: 1.25rem; font-weight: 800; letter-spacing: 0.5px; text-transform: uppercase; color: #fff; }
+    .ws-badge {
+      display: inline-flex; align-items: center; gap: 6px; font-size: 0.75rem; font-weight: 700;
+      padding: 4px 10px; border-radius: 999px; background: rgba(16, 185, 129, 0.15); color: var(--green);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+    .ws-badge.disconnected { background: rgba(239, 68, 68, 0.15); color: var(--red); border-color: rgba(239, 68, 68, 0.3); }
+    .ws-dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+
+    /* Station Filters */
+    .stations-nav { display: flex; gap: 8px; background: #0f172a; padding: 4px; border-radius: 10px; border: 1px solid #1e293b; }
+    .station-btn {
+      background: transparent; color: var(--text-muted); border: none; padding: 8px 16px; border-radius: 8px;
+      font-size: 0.85rem; font-weight: 700; cursor: pointer; transition: all 0.2s;
+    }
+    .station-btn:hover { color: #fff; background: rgba(255, 255, 255, 0.05); }
+    .station-btn.active { background: var(--blue); color: #fff; box-shadow: 0 2px 8px rgba(59, 130, 246, 0.4); }
+
+    .header-controls { display: flex; align-items: center; gap: 14px; }
+    .clock { font-size: 1.1rem; font-weight: 700; color: #38bdf8; font-variant-numeric: tabular-nums; }
+    .recall-btn {
+      background: #334155; color: #fff; border: 1px solid #475569; padding: 8px 16px; border-radius: 8px;
+      font-size: 0.85rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 6px;
+    }
+    .recall-btn:hover { background: #475569; }
+    .recall-btn:active { transform: scale(0.98); }
+
+    /* Bump Bar Instructions */
+    .bump-bar-legend {
+      background: #090d16; padding: 6px 20px; font-size: 0.75rem; color: var(--text-muted);
+      display: flex; gap: 16px; border-bottom: 1px solid #1e293b; justify-content: flex-end;
+    }
+    .bump-bar-legend span { display: flex; align-items: center; gap: 4px; }
+    .kbd { background: #1e293b; border: 1px solid #334155; padding: 1px 5px; border-radius: 4px; color: #cbd5e1; font-weight: 700; }
+
+    /* Ticket Grid */
+    main { flex: 1; padding: 18px; }
+    .ticket-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(310px, 1fr));
+      gap: 16px;
+    }
+
+    /* Ticket Card */
+    .ticket-card {
+      background: var(--card-bg);
+      border-radius: 12px;
+      border: 3px solid var(--card-border);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.4);
+      transition: border-color 0.3s;
+    }
+
+    .ticket-card.selected { outline: 4px solid #38bdf8; outline-offset: 2px; }
+
+    /* SLA Styles */
+    .ticket-card.sla-normal { border-color: var(--green); }
+    .ticket-card.sla-normal .ticket-header { background: rgba(16, 185, 129, 0.15); border-bottom: 2px solid var(--green); }
+
+    .ticket-card.sla-warning { border-color: var(--yellow); }
+    .ticket-card.sla-warning .ticket-header { background: rgba(245, 158, 11, 0.18); border-bottom: 2px solid var(--yellow); }
+
+    .ticket-card.sla-critical {
+      border-color: var(--red);
+      animation: pulseCritical 1.8s infinite alternate ease-in-out;
+    }
+    .ticket-card.sla-critical .ticket-header { background: rgba(239, 68, 68, 0.25); border-bottom: 2px solid var(--red); }
+
+    @keyframes pulseCritical {
+      from { box-shadow: 0 0 10px rgba(239, 68, 68, 0.5); }
+      to { box-shadow: 0 0 25px rgba(239, 68, 68, 0.85); }
+    }
+
+    .ticket-header {
+      padding: 10px 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .ticket-table { font-size: 1.25rem; font-weight: 800; color: #fff; }
+    .ticket-meta { font-size: 0.8rem; color: var(--text-muted); }
+    .ticket-timer {
+      font-size: 1.2rem; font-weight: 900; font-variant-numeric: tabular-nums;
+      padding: 4px 10px; border-radius: 6px; background: rgba(0,0,0,0.4);
+    }
+    .sla-normal .ticket-timer { color: var(--green); }
+    .sla-warning .ticket-timer { color: var(--yellow); }
+    .sla-critical .ticket-timer { color: var(--red); }
+
+    .ticket-body { flex: 1; padding: 12px; display: flex; flex-direction: column; gap: 8px; }
+
+    /* Order Item Row */
+    .item-row {
+      background: #0f172a;
+      border: 1px solid #334155;
+      padding: 8px 10px;
+      border-radius: 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      cursor: pointer;
+      user-select: none;
+      transition: background 0.15s;
+    }
+    .item-row:hover { background: #1e293b; border-color: #475569; }
+
+    .item-row.item-ready {
+      opacity: 0.45;
+      background: rgba(16, 185, 129, 0.08);
+      border-color: rgba(16, 185, 129, 0.3);
+      text-decoration: line-through;
+    }
+
+    .item-row.item-hold {
+      border-left: 5px solid var(--yellow);
+    }
+
+    .item-details { display: flex; flex-direction: column; gap: 3px; }
+    .item-title { font-size: 0.95rem; font-weight: 700; color: #f1f5f9; display: flex; gap: 6px; }
+    .item-qty { color: #38bdf8; font-weight: 900; }
+    .item-modifier { font-size: 0.78rem; color: #fb7185; font-weight: 600; padding-left: 14px; }
+    .item-notes { font-size: 0.78rem; color: #fde047; font-style: italic; padding-left: 14px; }
+
+    .item-status-badge {
+      font-size: 0.7rem; font-weight: 800; padding: 3px 8px; border-radius: 4px; text-transform: uppercase;
+      white-space: nowrap;
+    }
+    .badge-hold { background: rgba(245, 158, 11, 0.2); color: var(--yellow); border: 1px solid var(--yellow); }
+    .badge-queued { background: rgba(59, 130, 246, 0.2); color: var(--blue); border: 1px solid var(--blue); }
+    .badge-ready { background: rgba(16, 185, 129, 0.2); color: var(--green); border: 1px solid var(--green); }
+
+    /* Ticket Footer */
+    .ticket-footer {
+      padding: 10px 14px;
+      background: #0f172a;
+      border-top: 1px solid #1e293b;
+      display: flex;
+      gap: 8px;
+    }
+
+    .bump-ticket-btn {
+      flex: 1;
+      background: var(--green);
+      color: #022c22;
+      border: none;
+      padding: 10px;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      font-weight: 800;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 6px;
+    }
+    .bump-ticket-btn:hover { background: #34d399; }
+    .bump-ticket-btn:active { transform: scale(0.98); }
+
+    /* Empty state */
+    .empty-state {
+      text-align: center; padding: 80px 20px; color: var(--text-muted);
+      display: flex; flex-direction: column; align-items: center; gap: 12px;
+    }
+    .empty-state svg { width: 64px; height: 64px; opacity: 0.3; stroke: currentColor; }
+    .empty-state h3 { font-size: 1.4rem; color: #64748b; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="brand">
+      <h1>KDS MUTFAK EKRANI</h1>
+      <div id="wsBadge" class="ws-badge">
+        <span class="ws-dot"></span> <span id="wsStatusText">BAĞLANIYOR</span>
+      </div>
+    </div>
+
+    <nav class="stations-nav">
+      <button class="station-btn active" data-station="EXPEDITOR">TÜMÜ (ŞEF)</button>
+      <button class="station-btn" data-station="GRILL">IZGARA</button>
+      <button class="station-btn" data-station="OVEN">FIRIN</button>
+      <button class="station-btn" data-station="COLD">SOĞUK / SALATA</button>
+      <button class="station-btn" data-station="BAR">BAR / İÇECEK</button>
+    </nav>
+
+    <div class="header-controls">
+      <button id="recallBtn" class="recall-btn" title="Son Tamamlanan Bileti Geri Al (F1 / Z)">
+        ↩ Geri Al (F1)
+      </button>
+      <div id="clockDisplay" class="clock">12:00:00</div>
+    </div>
+  </header>
+
+  <div class="bump-bar-legend">
+    <span><span class="kbd">ENTER</span> Kalem / Bilet Bump</span>
+    <span><span class="kbd">F1</span> veya <span class="kbd">Z</span> Geri Al (Recall)</span>
+    <span><span class="kbd">F2</span> veya <span class="kbd">H</span> Beklet (Hold)</span>
+    <span><span class="kbd">SPACE</span> Seçili Bileti Bitir</span>
+  </div>
+
+  <main>
+    <div id="ticketGrid" class="ticket-grid"></div>
+    <div id="emptyState" class="empty-state" style="display: none;">
+      <svg fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+      <h3>Mutfakta Hazırlanacak Bekleyen Sipariş Yok</h3>
+      <p>Yeni bir sipariş girildiğinde biletler otomatik olarak bu ekrana düşecektir.</p>
+    </div>
+  </main>
+
+  <script>
+    let currentStation = 'EXPEDITOR';
+    let tickets = [];
+    let selectedTicketIndex = 0;
+    let ws = null;
+
+    // --- Web Audio API Synthesizer (Zero External Dependencies) ---
+    const AudioEngine = {
+      ctx: null,
+      init() {
+        if (!this.ctx) {
+          const AudioContext = window.AudioContext || window.webkitAudioContext;
+          if (AudioContext) this.ctx = new AudioContext();
+        }
+      },
+      playTone(freq, type, duration, delay = 0) {
+        try {
+          this.init();
+          if (!this.ctx) return;
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = type;
+          osc.frequency.setValueAtTime(freq, this.ctx.currentTime + delay);
+          gain.gain.setValueAtTime(0.15, this.ctx.currentTime + delay);
+          gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + delay + duration);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(this.ctx.currentTime + delay);
+          osc.stop(this.ctx.currentTime + delay + duration);
+        } catch (e) { console.warn('Audio play error:', e); }
+      },
+      playNewOrder() {
+        this.playTone(587.33, 'sine', 0.2, 0); // D5
+        this.playTone(880.00, 'sine', 0.35, 0.15); // A5
+      },
+      playCriticalAlert() {
+        this.playTone(440, 'square', 0.15, 0);
+        this.playTone(440, 'square', 0.25, 0.2);
+      },
+      playBump() {
+        this.playTone(523.25, 'triangle', 0.12, 0);
+      }
+    };
+
+    // --- Clock ---
+    setInterval(() => {
+      document.getElementById('clockDisplay').textContent = new Date().toLocaleTimeString('tr-TR');
+    }, 1000);
+
+    // --- Stations Nav ---
+    document.querySelectorAll('.station-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.station-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentStation = btn.dataset.station;
+        selectedTicketIndex = 0;
+        fetchTickets();
+      });
+    });
+
+    // --- Recall Button ---
+    document.getElementById('recallBtn').addEventListener('click', recallLast);
+
+    async function recallLast() {
+      try {
+        const res = await fetch('/api/v1/kds/recall', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ station: currentStation })
+        });
+        const data = await res.json();
+        if (data.success) {
+          AudioEngine.playBump();
+          fetchTickets();
+        } else {
+          alert('Geri alınacak son işlem bulunamadı.');
+        }
+      } catch (err) { console.error('Recall error:', err); }
+    }
+
+    // --- API Fetch ---
+    async function fetchTickets() {
+      try {
+        const res = await fetch(`/api/v1/kds/tickets?station=${currentStation}`);
+        const data = await res.json();
+        if (data.success) {
+          tickets = data.data;
+          renderTickets();
+        }
+      } catch (err) {
+        console.error('Fetch tickets error:', err);
+      }
+    }
+
+    // --- Render ---
+    function renderTickets() {
+      const grid = document.getElementById('ticketGrid');
+      const empty = document.getElementById('emptyState');
+
+      if (!tickets || tickets.length === 0) {
+        grid.innerHTML = '';
+        empty.style.display = 'flex';
+        return;
+      }
+      empty.style.display = 'none';
+
+      grid.innerHTML = tickets.map((t, idx) => {
+        const isSelected = idx === selectedTicketIndex;
+        const mins = Math.floor(t.elapsed_seconds / 60);
+        const secs = t.elapsed_seconds % 60;
+        const timerFormatted = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+        const slaClass = `sla-${t.sla_status.toLowerCase()}`;
+
+        const itemsHtml = t.items.map(it => {
+          let badgeClass = 'badge-queued';
+          let badgeText = 'HAZIRLANIYOR';
+          if (it.status === 'HOLD') {
+            badgeClass = 'badge-hold';
+            badgeText = `HOLD (${it.time_remaining_seconds}s)`;
+          } else if (it.status === 'READY') {
+            badgeClass = 'badge-ready';
+            badgeText = 'HAZIR';
+          }
+
+          const modsHtml = (it.selected_modifiers || []).map(m => `
+            <div class="item-modifier">+ ${m.name}</div>
+          `).join('');
+
+          const notesHtml = it.customer_notes ? `<div class="item-notes">NOT: ${it.customer_notes}</div>` : '';
+
+          const itemClass = it.status === 'READY' ? 'item-ready' : (it.status === 'HOLD' ? 'item-hold' : '');
+
+          return `
+            <div class="item-row ${itemClass}" onclick="bumpSingleItem('${it.id}')">
+              <div class="item-details">
+                <div class="item-title">
+                  <span class="item-qty">${it.quantity}x</span>
+                  <span>${it.product_name}</span>
+                </div>
+                ${modsHtml}
+                ${notesHtml}
+              </div>
+              <span class="item-status-badge ${badgeClass}">${badgeText}</span>
+            </div>
+          `;
+        }).join('');
+
+        return `
+          <div class="ticket-card ${slaClass} ${isSelected ? 'selected' : ''}" data-index="${idx}">
+            <div class="ticket-header">
+              <div>
+                <div class="ticket-table">${t.table_number}</div>
+                <div class="ticket-meta">Adisyon: ${t.order_number}</div>
+              </div>
+              <div class="ticket-timer">${timerFormatted}</div>
+            </div>
+            <div class="ticket-body">
+              ${itemsHtml}
+            </div>
+            <div class="ticket-footer">
+              <button class="bump-ticket-btn" onclick="bumpEntireTicket('${t.order_id}')">
+                ✓ BUMP (BİTİR)
+              </button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // --- Actions ---
+    async function bumpSingleItem(itemId) {
+      AudioEngine.playBump();
+      try {
+        await fetch(`/api/v1/kds/items/${itemId}/bump`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ actorId: '00000000-0000-0000-0000-000000000001' })
+        });
+        fetchTickets();
+      } catch (e) { console.error('Bump item error:', e); }
+    }
+
+    async function bumpEntireTicket(orderId) {
+      AudioEngine.playBump();
+      try {
+        await fetch(`/api/v1/kds/tickets/${orderId}/bump`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ station: currentStation })
+        });
+        fetchTickets();
+      } catch (e) { console.error('Bump ticket error:', e); }
+    }
+
+    // --- Timer Tick ---
+    setInterval(() => {
+      let hasCritical = false;
+      tickets.forEach(t => {
+        t.elapsed_seconds += 1;
+        const targetSeconds = (t.max_prep_time_minutes || 1) * 60;
+        const ratio = t.elapsed_seconds / targetSeconds;
+        if (ratio > 1.0) {
+          t.sla_status = 'CRITICAL';
+          hasCritical = true;
+        } else if (ratio >= 0.5) {
+          t.sla_status = 'WARNING';
+        }
+        // Count down held items
+        t.items.forEach(it => {
+          if (it.status === 'HOLD' && it.time_remaining_seconds > 0) {
+            it.time_remaining_seconds -= 1;
+          }
+        });
+      });
+      renderTickets();
+    }, 1000);
+
+    // --- Bump Bar Keyboard Listener ---
+    window.addEventListener('keydown', (e) => {
+      // Audio permission unlock on first gesture
+      AudioEngine.init();
+
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        if (tickets[selectedTicketIndex]) {
+          bumpEntireTicket(tickets[selectedTicketIndex].order_id);
+        }
+      } else if (e.key === 'F1' || e.key.toLowerCase() === 'z') {
+        e.preventDefault();
+        recallLast();
+      } else if (e.key === ' ' || e.code === 'Space') {
+        e.preventDefault();
+        if (tickets[selectedTicketIndex]) {
+          bumpEntireTicket(tickets[selectedTicketIndex].order_id);
+        }
+      } else if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        selectedTicketIndex = (selectedTicketIndex + 1) % Math.max(1, tickets.length);
+        renderTickets();
+      } else if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        selectedTicketIndex = (selectedTicketIndex - 1 + tickets.length) % Math.max(1, tickets.length);
+        renderTickets();
+      }
+    });
+
+    // --- Real-time WebSocket ---
+    function connectWebSocket() {
+      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const wsUrl = `${protocol}//${window.location.host}/ws`;
+
+      ws = new WebSocket(wsUrl);
+
+      ws.onopen = () => {
+        const badge = document.getElementById('wsBadge');
+        badge.classList.remove('disconnected');
+        document.getElementById('wsStatusText').textContent = 'CANLI';
+      };
+
+      ws.onmessage = (event) => {
+        try {
+          const msg = JSON.parse(event.data);
+          if (msg.event === 'KDS:NEW_TICKET') {
+            AudioEngine.playNewOrder();
+            fetchTickets();
+          } else if (msg.event === 'KDS:ITEM_STATUS_CHANGED' || msg.event === 'KDS:ITEM_FIRED' || msg.event === 'KDS:TICKET_READY') {
+            fetchTickets();
+          }
+        } catch (e) { console.error('WS parse error:', e); }
+      };
+
+      ws.onclose = () => {
+        const badge = document.getElementById('wsBadge');
+        badge.classList.add('disconnected');
+        document.getElementById('wsStatusText').textContent = 'KOPUK';
+        setTimeout(connectWebSocket, 3000);
+      };
+
+      ws.onerror = () => {
+        ws.close();
+      };
+    }
+
+    // Initialize
+    fetchTickets();
+    connectWebSocket();
+  </script>
+</body>
+</html>

@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Enterprise RMS - Garson Mobil Terminali</title>
+  <style>
+    :root {
+      --bg: #090d16;
+      --card-bg: #131c2e;
+      --card-border: #1e293b;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --blue: #2563eb;
+      --blue-light: #38bdf8;
+      --green: #10b981;
+      --yellow: #f59e0b;
+      --red: #ef4444;
+      --accent: #f97316;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; -webkit-tap-highlight-color: transparent; }
+    body { background-color: var(--bg); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; padding-bottom: 70px; }
+
+    /* Top Bar */
+    header {
+      background: #0f172a;
+      padding: 12px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--card-border);
+      position: sticky;
+      top: 0;
+      z-index: 40;
+    }
+    .header-title { font-size: 1.1rem; font-weight: 800; color: #fff; display: flex; align-items: center; gap: 8px; }
+    .badge-live {
+      font-size: 0.7rem; font-weight: 700; padding: 3px 8px; border-radius: 999px;
+      background: rgba(16, 185, 129, 0.15); color: var(--green); border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+    .badge-live.offline { background: rgba(239, 68, 68, 0.15); color: var(--red); border-color: rgba(239, 68, 68, 0.3); }
+
+    /* Banner for Kitchen Alert */
+    #alertBanner {
+      display: none; background: #065f46; color: #ecfdf5; padding: 12px 16px; font-weight: 700; font-size: 0.9rem;
+      border-bottom: 2px solid #10b981; animation: slideDown 0.3s ease;
+    }
+    @keyframes slideDown { from { transform: translateY(-100%); } to { transform: translateY(0); } }
+
+    /* Bottom Navigation */
+    nav.bottom-nav {
+      position: fixed; bottom: 0; left: 0; right: 0; background: #0f172a; border-top: 1px solid var(--card-border);
+      display: flex; height: 64px; z-index: 50;
+    }
+    .nav-item {
+      flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+      color: var(--text-muted); background: transparent; border: none; font-size: 0.75rem; font-weight: 700;
+      cursor: pointer; position: relative;
+    }
+    .nav-item.active { color: var(--blue-light); }
+    .nav-item svg { width: 22px; height: 22px; stroke: currentColor; fill: none; }
+    .nav-badge {
+      position: absolute; top: 6px; right: 28%; background: var(--red); color: #fff;
+      font-size: 0.65rem; font-weight: 800; padding: 2px 6px; border-radius: 999px; display: none;
+    }
+
+    /* Views */
+    .view { display: none; padding: 16px; flex: 1; }
+    .view.active { display: block; }
+
+    /* Section Filters */
+    .section-tabs { display: flex; gap: 8px; margin-bottom: 14px; overflow-x: auto; padding-bottom: 4px; }
+    .tab-btn {
+      background: var(--card-bg); border: 1px solid var(--card-border); color: var(--text-muted);
+      padding: 6px 14px; border-radius: 8px; font-size: 0.8rem; font-weight: 700; white-space: nowrap; cursor: pointer;
+    }
+    .tab-btn.active { background: var(--blue); color: #fff; border-color: var(--blue); }
+
+    /* Table Grid */
+    .table-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+    .table-card {
+      background: var(--card-bg); border-radius: 12px; border: 2px solid var(--card-border); padding: 12px;
+      display: flex; flex-direction: column; gap: 8px; position: relative; cursor: pointer;
+    }
+    .table-card.AVAILABLE { border-color: #334155; }
+    .table-card.OCCUPIED { border-color: var(--blue); }
+    .table-card.BILL_REQUESTED { border-color: var(--yellow); }
+    .table-card.DIRTY { border-color: var(--red); }
+
+    .table-header { display: flex; justify-content: space-between; align-items: center; }
+    .table-num { font-size: 1.15rem; font-weight: 800; color: #fff; }
+    .table-status { font-size: 0.7rem; font-weight: 800; padding: 2px 6px; border-radius: 4px; text-transform: uppercase; }
+    .status-available { background: rgba(100, 116, 139, 0.2); color: #94a3b8; }
+    .status-occupied { background: rgba(59, 130, 246, 0.2); color: var(--blue-light); }
+    .status-bill { background: rgba(245, 158, 11, 0.2); color: var(--yellow); }
+    .status-dirty { background: rgba(239, 68, 68, 0.2); color: var(--red); }
+
+    .table-body { font-size: 0.85rem; color: var(--text-muted); }
+    .table-total { font-size: 1.1rem; font-weight: 900; color: #fff; margin-top: 4px; }
+    .ready-chip {
+      background: rgba(16, 185, 129, 0.2); color: var(--green); border: 1px solid var(--green);
+      font-size: 0.7rem; font-weight: 800; padding: 2px 6px; border-radius: 4px; align-self: flex-start;
+    }
+
+    /* Menu & Order View */
+    .order-header {
+      background: #0f172a; padding: 12px; border-radius: 10px; margin-bottom: 14px;
+      display: flex; justify-content: space-between; align-items: center; border: 1px solid var(--card-border);
+    }
+    .menu-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+    .product-card {
+      background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 10px; padding: 10px;
+      display: flex; flex-direction: column; justify-content: space-between; cursor: pointer; min-height: 105px;
+    }
+    .product-card:active { transform: scale(0.97); }
+    .prod-name { font-size: 0.9rem; font-weight: 700; color: #fff; }
+    .prod-station { font-size: 0.65rem; color: #38bdf8; font-weight: 800; margin-top: 2px; }
+    .prod-price { font-size: 0.95rem; font-weight: 900; color: var(--green); margin-top: 6px; }
+
+    /* Cart Bar */
+    .cart-summary {
+      background: #1e293b; border-radius: 12px; padding: 14px; margin-top: 14px; border: 1px solid #334155;
+    }
+    .cart-item {
+      display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px solid #334155;
+      font-size: 0.85rem;
+    }
+    .cart-btn {
+      width: 100%; background: var(--green); color: #022c22; font-weight: 800; font-size: 1rem;
+      border: none; padding: 12px; border-radius: 10px; cursor: pointer; margin-top: 10px;
+    }
+
+    /* Alerts View */
+    .alert-card {
+      background: var(--card-bg); border-left: 4px solid var(--green); border-radius: 10px;
+      padding: 12px 14px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;
+    }
+    .alert-title { font-size: 1rem; font-weight: 800; color: #fff; }
+    .alert-sub { font-size: 0.8rem; color: var(--text-muted); }
+    .serve-btn {
+      background: var(--blue); color: #fff; font-size: 0.8rem; font-weight: 800;
+      border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer;
+    }
+
+    /* Modal */
+    .modal-backdrop {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 100; display: none;
+      align-items: flex-end; justify-content: center;
+    }
+    .modal-sheet {
+      background: #0f172a; width: 100%; max-width: 500px; border-radius: 16px 16px 0 0;
+      padding: 20px; border-top: 1px solid var(--card-border); max-height: 85vh; overflow-y: auto;
+    }
+    .sheet-title { font-size: 1.2rem; font-weight: 800; color: #fff; margin-bottom: 12px; }
+    .input-note {
+      width: 100%; background: #1e293b; border: 1px solid #334155; color: #fff; padding: 10px;
+      border-radius: 8px; margin: 10px 0; font-size: 0.9rem;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="header-title">
+      <span>🍽 GARSON EL TERMİNALİ</span>
+    </div>
+    <div id="wsBadge" class="badge-live">🟢 ÇEVRİMİÇİ</div>
+  </header>
+
+  <div id="alertBanner"></div>
+
+  <!-- VIEW 1: Masalar -->
+  <section id="viewTables" class="view active">
+    <div class="section-tabs">
+      <button class="tab-btn active" onclick="filterSection('ALL')">Tümü</button>
+      <button class="tab-btn" onclick="filterSection('Ana Salon')">Ana Salon</button>
+      <button class="tab-btn" onclick="filterSection('Teras')">Teras</button>
+    </div>
+    <div id="tableGrid" class="table-grid"></div>
+  </section>
+
+  <!-- VIEW 2: Hızlı Sipariş Menüsü -->
+  <section id="viewMenu" class="view">
+    <div class="order-header">
+      <div>
+        <h3 id="currentTableLabel" style="color: #fff; font-size: 1.1rem;">Masa Seçilmedi</h3>
+        <span id="currentOrderLabel" style="font-size: 0.75rem; color: var(--text-muted);">Sipariş başlatmak için ürün seçin</span>
+      </div>
+      <button class="tab-btn" onclick="switchView('tables')">Masalara Dön</button>
+    </div>
+
+    <div class="section-tabs" id="categoryTabs"></div>
+    <div class="menu-grid" id="menuGrid"></div>
+
+    <div class="cart-summary" id="cartSection" style="display: none;">
+      <h4 style="color: #fff; margin-bottom: 6px;">Sipariş Sepeti (Mutfak Kuyruğu)</h4>
+      <div id="cartItemsList"></div>
+      <div style="display: flex; justify-content: space-between; margin-top: 8px; font-weight: 800; color: #fff;">
+        <span>Toplam:</span>
+        <span id="cartTotalLabel">0.00 TL</span>
+      </div>
+      <button class="cart-btn" onclick="submitQuickOrder()">🔥 MUTFAĞA İLET (KDS)</button>
+    </div>
+  </section>
+
+  <!-- VIEW 3: Mutfak Hazır Bildirimleri -->
+  <section id="viewAlerts" class="view">
+    <h3 style="color: #fff; margin-bottom: 12px;">Mutfaktan Hazır Çıkanlar</h3>
+    <div id="alertsList">
+      <p style="color: var(--text-muted); font-size: 0.9rem;">Şu anda mutfakta bekleyen hazır ürün bulunmuyor.</p>
+    </div>
+  </section>
+
+  <!-- Bottom Nav -->
+  <nav class="bottom-nav">
+    <button class="nav-item active" onclick="switchView('tables')">
+      <svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg>
+      <span>Masalar</span>
+    </button>
+    <button class="nav-item" onclick="switchView('menu')">
+      <svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
+      <span>Sipariş</span>
+    </button>
+    <button class="nav-item" onclick="switchView('alerts')">
+      <svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+      <span>Bildirimler</span>
+      <span id="navAlertBadge" class="nav-badge">0</span>
+    </button>
+  </nav>
+
+  <!-- Modifier & Note Modal -->
+  <div class="modal-backdrop" id="modalBackdrop">
+    <div class="modal-sheet">
+      <h3 class="sheet-title" id="modalProdTitle">Ürün Ekle</h3>
+      <p id="modalProdPrice" style="color: var(--green); font-weight: 800;"></p>
+      
+      <div style="margin: 12px 0;">
+        <label style="color: var(--text-muted); font-size: 0.8rem; font-weight: 700;">Ekstra Malzemeler:</label>
+        <div id="modalModifiersList" style="margin-top: 6px; display: flex; flex-direction: column; gap: 6px;"></div>
+      </div>
+
+      <div>
+        <label style="color: var(--text-muted); font-size: 0.8rem; font-weight: 700;">Mutfak Özel Notu:</label>
+        <input type="text" id="modalCustomerNote" class="input-note" placeholder="Örn: Tuzsuz, Sos ayrı, İyi pişmiş">
+      </div>
+
+      <div style="display: flex; gap: 8px; margin-top: 14px;">
+        <button class="tab-btn" style="flex: 1; padding: 12px;" onclick="closeModal()">İptal</button>
+        <button class="cart-btn" style="flex: 2; margin-top: 0;" onclick="confirmAddToCart()">Sepete Ekle</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let allTables = [];
+    let currentSection = 'ALL';
+    let selectedTable = null;
+    let menuProducts = [];
+    let menuCategories = [];
+    let activeCategory = null;
+    let cart = [];
+    let activeAlerts = [];
+    let modalProduct = null;
+    let ws = null;
+
+    // --- Audio Feedback ---
+    function playBeep(freq = 600, duration = 0.2) {
+      try {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        const ctx = new AudioContext();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.frequency.value = freq;
+        gain.gain.value = 0.2;
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + duration);
+      } catch (e) {}
+    }
+
+    // --- Navigation ---
+    function switchView(viewName) {
+      document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+      document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+
+      if (viewName === 'tables') {
+        document.getElementById('viewTables').classList.add('active');
+        document.querySelectorAll('.nav-item')[0].classList.add('active');
+        fetchTables();
+      } else if (viewName === 'menu') {
+        document.getElementById('viewMenu').classList.add('active');
+        document.querySelectorAll('.nav-item')[1].classList.add('active');
+        if (!selectedTable && allTables.length > 0) {
+          selectTable(allTables[0]);
+        }
+      } else if (viewName === 'alerts') {
+        document.getElementById('viewAlerts').classList.add('active');
+        document.querySelectorAll('.nav-item')[2].classList.add('active');
+      }
+    }
+
+    // --- Fetch Tables ---
+    async function fetchTables() {
+      try {
+        const res = await fetch('/api/v1/waiter/tables');
+        const data = await res.json();
+        if (data.success) {
+          allTables = data.data;
+          renderTables();
+        }
+      } catch (e) { console.error('Fetch tables error:', e); }
+    }
+
+    function filterSection(sec) {
+      currentSection = sec;
+      document.querySelectorAll('.section-tabs .tab-btn').forEach(b => {
+        b.classList.toggle('active', b.textContent === (sec === 'ALL' ? 'Tümü' : sec));
+      });
+      renderTables();
+    }
+
+    function renderTables() {
+      const grid = document.getElementById('tableGrid');
+      const filtered = currentSection === 'ALL' ? allTables : allTables.filter(t => t.section === currentSection);
+
+      grid.innerHTML = filtered.map(t => {
+        let statusText = 'BOŞ';
+        let statusClass = 'status-available';
+        if (t.current_status === 'OCCUPIED') { statusText = 'DOLU'; statusClass = 'status-occupied'; }
+        else if (t.current_status === 'BILL_REQUESTED') { statusText = 'HESAP İSTENDİ'; statusClass = 'status-bill'; }
+        else if (t.current_status === 'DIRTY') { statusText = 'KİRLİ'; statusClass = 'status-dirty'; }
+
+        const readyHtml = t.ready_items_count > 0 ? `<div class="ready-chip">🔔 ${t.ready_items_count} Ürün Hazır!</div>` : '';
+        const totalHtml = t.grand_total > 0 ? `<div class="table-total">${t.grand_total.toFixed(2)} TL</div>` : '<div class="table-total" style="color: #64748b;">-</div>';
+
+        return `
+          <div class="table-card ${t.current_status}" onclick="handleTableClick('${t.id}')">
+            <div class="table-header">
+              <span class="table-num">${t.table_number}</span>
+              <span class="table-status ${statusClass}">${statusText}</span>
+            </div>
+            ${readyHtml}
+            <div class="table-body">
+              <div>Kapasite: ${t.capacity} Kişi</div>
+              ${totalHtml}
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function handleTableClick(tableId) {
+      const table = allTables.find(t => t.id === tableId);
+      if (!table) return;
+      selectTable(table);
+      switchView('menu');
+    }
+
+    function selectTable(table) {
+      selectedTable = table;
+      document.getElementById('currentTableLabel').textContent = `Masa: ${table.table_number} (${table.section})`;
+      document.getElementById('currentOrderLabel').textContent = table.active_order_id ? `Açık Adisyon: ${table.order_number}` : 'Yeni Sipariş Açılacak';
+    }
+
+    // --- Fetch Menu ---
+    async function fetchMenu() {
+      try {
+        const res = await fetch('/api/v1/orders/menu');
+        const data = await res.json();
+        if (data.success) {
+          menuCategories = data.data.categories;
+          menuProducts = data.data.products;
+          renderMenuCategories();
+          if (menuCategories.length > 0) selectCategory(menuCategories[0].id);
+        }
+      } catch (e) { console.error('Fetch menu error:', e); }
+    }
+
+    function renderMenuCategories() {
+      const container = document.getElementById('categoryTabs');
+      container.innerHTML = menuCategories.map((c, i) => `
+        <button class="tab-btn ${i === 0 ? 'active' : ''}" onclick="selectCategory('${c.id}')">${c.name}</button>
+      `).join('');
+    }
+
+    function selectCategory(catId) {
+      activeCategory = catId;
+      document.querySelectorAll('#categoryTabs .tab-btn').forEach(b => {
+        const cat = menuCategories.find(c => c.id === catId);
+        b.classList.toggle('active', b.textContent === cat?.name);
+      });
+      renderProducts();
+    }
+
+    function renderProducts() {
+      const grid = document.getElementById('menuGrid');
+      const filtered = menuProducts.filter(p => !activeCategory || p.category_id === activeCategory);
+
+      grid.innerHTML = filtered.map(p => `
+        <div class="product-card" onclick="openProductModal('${p.id}')">
+          <div>
+            <div class="prod-name">${p.name}</div>
+            <div class="prod-station">${p.preparation_station} • ${p.standard_prep_time_minutes} dk</div>
+          </div>
+          <div class="prod-price">${Number(p.base_price).toFixed(2)} TL</div>
+        </div>
+      `).join('');
+    }
+
+    // --- Modifiers Modal ---
+    function openProductModal(prodId) {
+      modalProduct = menuProducts.find(p => p.id === prodId);
+      if (!modalProduct) return;
+
+      document.getElementById('modalProdTitle').textContent = modalProduct.name;
+      document.getElementById('modalProdPrice').textContent = `${Number(modalProduct.base_price).toFixed(2)} TL`;
+      document.getElementById('modalCustomerNote').value = '';
+
+      const modsList = document.getElementById('modalModifiersList');
+      // Common modifiers based on product type
+      let availableMods = [];
+      if (modalProduct.preparation_station === 'GRILL') {
+        availableMods = [
+          { name: 'Ekstra Cheddar Peyniri', extra_price: 25.0 },
+          { name: 'Karamelize Soğan', extra_price: 15.0 },
+          { name: 'Acı Sos', extra_price: 0.0 }
+        ];
+      }
+
+      modsList.innerHTML = availableMods.map((m, idx) => `
+        <label style="display: flex; align-items: center; gap: 8px; font-size: 0.85rem; color: #fff;">
+          <input type="checkbox" data-name="${m.name}" data-price="${m.extra_price}">
+          <span>${m.name} (+${m.extra_price.toFixed(2)} TL)</span>
+        </label>
+      `).join('');
+
+      document.getElementById('modalBackdrop').style.display = 'flex';
+    }
+
+    function closeModal() {
+      document.getElementById('modalBackdrop').style.display = 'none';
+      modalProduct = null;
+    }
+
+    function confirmAddToCart() {
+      if (!modalProduct) return;
+      const selectedMods = [];
+      document.querySelectorAll('#modalModifiersList input:checked').forEach(cb => {
+        selectedMods.push({
+          name: cb.dataset.name,
+          extra_price: parseFloat(cb.dataset.price)
+        });
+      });
+
+      const note = document.getElementById('modalCustomerNote').value.trim();
+
+      cart.push({
+        product: modalProduct,
+        modifiers: selectedMods,
+        customerNotes: note || undefined,
+        quantity: 1
+      });
+
+      closeModal();
+      renderCart();
+      playBeep(880, 0.1);
+    }
+
+    function renderCart() {
+      const section = document.getElementById('cartSection');
+      const list = document.getElementById('cartItemsList');
+      const totalLabel = document.getElementById('cartTotalLabel');
+
+      if (cart.length === 0) {
+        section.style.display = 'none';
+        return;
+      }
+
+      section.style.display = 'block';
+      let total = 0;
+
+      list.innerHTML = cart.map((it, idx) => {
+        const modsTotal = it.modifiers.reduce((a, b) => a + b.extra_price, 0);
+        const itemTotal = (Number(it.product.base_price) + modsTotal) * it.quantity;
+        total += itemTotal;
+
+        const modsText = it.modifiers.length > 0 ? ` (+${it.modifiers.map(m=>m.name).join(', ')})` : '';
+        const noteText = it.customerNotes ? `<div style="color: #fde047; font-size: 0.75rem;">Not: ${it.customerNotes}</div>` : '';
+
+        return `
+          <div class="cart-item">
+            <div>
+              <strong>${it.quantity}x ${it.product.name}</strong>
+              <span style="color: #94a3b8; font-size: 0.75rem;">${modsText}</span>
+              ${noteText}
+            </div>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span style="font-weight: 700; color: #fff;">${itemTotal.toFixed(2)} TL</span>
+              <button onclick="removeFromCart(${idx})" style="background: none; border: none; color: #ef4444; font-size: 1rem; cursor: pointer;">✕</button>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      totalLabel.textContent = `${total.toFixed(2)} TL`;
+    }
+
+    function removeFromCart(idx) {
+      cart.splice(idx, 1);
+      renderCart();
+    }
+
+    // --- Submit Quick Order ---
+    async function submitQuickOrder() {
+      if (!selectedTable) { alert('Lütfen önce bir masa seçin.'); return; }
+      if (cart.length === 0) return;
+
+      const payload = {
+        tableId: selectedTable.id,
+        waiterId: '00000000-0000-0000-0000-000000000001',
+        enablePacing: true,
+        items: cart.map(it => ({
+          productId: it.product.id,
+          quantity: it.quantity,
+          modifiers: it.modifiers,
+          customerNotes: it.customerNotes
+        }))
+      };
+
+      try {
+        const res = await fetch('/api/v1/waiter/quick-order', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        const data = await res.json();
+        if (data.success) {
+          cart = [];
+          renderCart();
+          playBeep(1200, 0.25);
+          if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
+          alert(`Sipariş başarıyla KDS mutfağına iletildi! (${selectedTable.table_number})`);
+          switchView('tables');
+        }
+      } catch (e) {
+        console.error('Submit order error:', e);
+      }
+    }
+
+    // --- Mark Item Served ---
+    async function markServed(itemId) {
+      try {
+        await fetch(`/api/v1/kds/items/${itemId}/serve`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ waiterId: '00000000-0000-0000-0000-000000000001' })
+        });
+        activeAlerts = activeAlerts.filter(a => a.orderItemId !== itemId);
+        renderAlerts();
+      } catch (e) { console.error('Mark served error:', e); }
+    }
+
+    function renderAlerts() {
+      const container = document.getElementById('alertsList');
+      const badge = document.getElementById('navAlertBadge');
+
+      badge.textContent = activeAlerts.length;
+      badge.style.display = activeAlerts.length > 0 ? 'inline-block' : 'none';
+
+      if (activeAlerts.length === 0) {
+        container.innerHTML = '<p style="color: var(--text-muted); font-size: 0.9rem;">Şu anda mutfakta bekleyen hazır ürün bulunmuyor.</p>';
+        return;
+      }
+
+      container.innerHTML = activeAlerts.map(a => `
+        <div class="alert-card">
+          <div>
+            <div class="alert-title">${a.tableNumber} - ${a.productName}</div>
+            <div class="alert-sub">Adet: ${a.quantity} • İstasyon: ${a.station}</div>
+          </div>
+          <button class="serve-btn" onclick="markServed('${a.orderItemId}')">✓ TESLİM EDİLDİ</button>
+        </div>
+      `).join('');
+    }
+
+    // --- WebSocket ---
+    function connectWS() {
+      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const wsUrl = `${protocol}//${window.location.host}/ws`;
+      ws = new WebSocket(wsUrl);
+
+      ws.onopen = () => {
+        document.getElementById('wsBadge').classList.remove('offline');
+        document.getElementById('wsBadge').textContent = '🟢 ÇEVRİMİÇİ';
+      };
+
+      ws.onmessage = (event) => {
+        try {
+          const msg = JSON.parse(event.data);
+          if (msg.event === 'TABLE_STATE_CHANGED') {
+            fetchTables();
+          } else if (msg.event === 'WAITER:ITEM_READY') {
+            playBeep(1000, 0.3);
+            if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+
+            // Show top banner
+            const banner = document.getElementById('alertBanner');
+            banner.textContent = `🔔 MUTFAK HAZIR: ${msg.payload.tableNumber} - ${msg.payload.productName}`;
+            banner.style.display = 'block';
+            setTimeout(() => { banner.style.display = 'none'; }, 6000);
+
+            activeAlerts.unshift(msg.payload);
+            renderAlerts();
+            fetchTables();
+          }
+        } catch (e) {}
+      };
+
+      ws.onclose = () => {
+        document.getElementById('wsBadge').classList.add('offline');
+        document.getElementById('wsBadge').textContent = '🔴 KOPUK';
+        setTimeout(connectWS, 3000);
+      };
+    }
+
+    // Initialize
+    fetchTables();
+    fetchMenu();
+    connectWS();
+  </script>
+</body>
+</html>

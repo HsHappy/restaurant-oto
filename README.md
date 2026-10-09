@@ -103,12 +103,44 @@ npm test
 
 ---
 
+## 🍳 FAZ 2: KDS (Kitchen Display System) & Garson Mobil Terminali
+
+Faz 2 kapsamında mutfak operasyonlarını ve salon garson yönetimini sıfır gecikmeyle koordine eden gerçek zamanlı KDS ve mobil el terminali altyapısı inşa edilmiştir:
+
+### 1. Akıllı Pişirme Zamanlaması (Cook Time Pacing / Hold & Fire Motoru)
+- **Farklı Pişirme Süresi Optimizasyonu:** Aynı masada sipariş edilen farklı hazırlık süreli ürünlerin (örn: 20 dk Antrikot ile 5 dk Salata) eş zamanlı sıcak servis edilmesini garanti eder.
+- **Formül:** $T_{\text{hedef}} = T_{\text{siparis}} + \max(T_{\text{prep}})$; $T_{\text{fire}} = T_{\text{hedef}} - T_{\text{ürün\_prep}}$
+- **Hold & Fire:** Kısa süren ürünler `HOLD` statüsünde bekletilir; süresi geldiğinde arka plan zamanlayıcısı tarafından otomatik olarak `QUEUED` statüsüne `FIRE` edilir. Gerektiğinde şef tarafından anında zorunlu pişirmeye (`forceFire`) alınabilir.
+
+### 2. KDS Kiosk Web İstemcisi (`/kds`)
+- **İstasyon Rotalaması:** `GRILL`, `BAR`, `OVEN`, `COLD` veya tüm mutfağı yöneten `EXPEDITOR` (Toplayıcı/Şef) ekran filtreleri.
+- **Endüstriyel Bump Bar Klavye Desteği:**
+  - `ENTER`: Seçili veya ilk aktfi bileti tamamla (Bump).
+  - `F1` veya `Z`: Yanlışlıkla tamamlanan bileti LIFO kuyruğundan geri al (Recall).
+  - `F2` veya `H`: Kalemi beklemede (`HOLD`) durumuna al.
+  - `SPACE`: Beklemedeki ürünü anında pişirmeye zorla (`FIRE`).
+- **Dinamik SLA & Web Audio API Ses Sentezi:**
+  - Süre < %50: Canlı Yeşil
+  - Süre %50 - %100: Uyarı Sarısı + Tekil bip sesi
+  - Süre > %100: Yanıp sönen Acil Kırmızı + Alarm sesi
+- **Canlı WebSocket:** Sipariş eklendiğinde veya ateşlendiğinde sıfır sayfa yenileme ile bilet akışı.
+
+### 3. Garson Mobil Terminali (`/waiter`)
+- **Masa Krokisi & Canlı Plan:** Masaların anlık renk kodlu durumları (`AVAILABLE`, `OCCUPIED`, `BILL_REQUESTED`, `DIRTY`).
+- **Hızlı Sipariş Girişi (UX Optimized):** Kategori filtreleri, arama, varyasyon ve pişme derecesi seçimi, dinamik ek malzemeler (modifiers) ve özel müşteri notları ("Tuzsuz", "Sos ayrı").
+- **Masa Operasyonları:** Masadan tek tuşla hesap isteme (`BILL_REQUESTED`) ve masalar arası aktif sipariş taşıma (`transfer-table`).
+- **Mutfak Hazır Bildirimleri (KDS Ready Alerts):** Mutfakta bir ürün `READY` olduğunda garson el terminalinde görsel banner, sesli sinyal ve titreşim (Web Vibration API - 200ms haptic feedback) ile anlık servis çağrısı.
+
+---
+
 ## 📡 REST API & WebSocket Endpoint'leri
 
 | Modül | Metod | Endpoint | Açıklama |
 | :--- | :--- | :--- | :--- |
-| **Sistem** | `GET` | `/health` | Sistem ve donanım sağlık durumu |
-| **WebSockets**| `WS` | `/ws` | LAN anlık olay yayını (`TABLE_STATE_CHANGED`, vb.) |
+| **Sistem & UI** | `GET` | `/health` | Sistem ve donanım sağlık durumu |
+| | `GET` | `/kds` | KDS Mutfak Ekranı Web Kiosk Arayüzü |
+| | `GET` | `/waiter` | Garson Mobil El Terminali Web / PWA Arayüzü |
+| **WebSockets**| `WS` | `/ws` | LAN anlık olay yayını (`KDS:*`, `WAITER:*`, `TABLE_*`) |
 | **Masalar** | `GET` | `/api/v1/tables` | Şubedeki masaları listele |
 | | `GET` | `/api/v1/tables/:id` | Masa detayını ve aktif adisyonu getir |
 | | `POST` | `/api/v1/tables/:id/open` | Masa aç ve aktif sipariş bağla |
@@ -122,6 +154,17 @@ npm test
 | | `DELETE`| `/api/v1/orders/:id/items/:itemId` | Ürün iptal et (Müdür PIN ve zayi kaydı ile) |
 | | `POST` | `/api/v1/orders/:id/discount` | İndirim / İkram uygula (Müdür PIN doğrulaması ile) |
 | | `POST` | `/api/v1/orders/:id/split` | Adisyonu böl (`EQUAL`, `BY_ITEM`, `CUSTOM_AMOUNT`) |
+| **KDS (Mutfak)**| `GET` | `/api/v1/kds/tickets` | İstasyon bazlı mutfak biletlerini listele (`?station=GRILL`) |
+| | `POST` | `/api/v1/kds/items/:id/bump` | Kalemi mutfakta hazır olarak tamamla (Bump) |
+| | `POST` | `/api/v1/kds/tickets/:orderId/bump` | Biletteki tüm istasyon kalemlerini tamamla |
+| | `POST` | `/api/v1/kds/recall` | Son bump yapılan bileti/kalemi geri al (LIFO Recall) |
+| | `POST` | `/api/v1/kds/items/:id/fire` | Beklemedeki (`HOLD`) kalemi zorla pişirmeye ver (`FIRE`) |
+| | `POST` | `/api/v1/kds/items/:id/hold` | Kalemi beklemeye (`HOLD`) al |
+| | `POST` | `/api/v1/kds/items/:id/serve`| Garson servis onayını kaydet (`SERVED`) |
+| **Garson (Mobil)**| `GET` | `/api/v1/waiter/tables` | Masalar, aktif tutarlar ve hazır ürün sayaçları |
+| | `POST` | `/api/v1/waiter/quick-order` | Cook Time Pacing optimizasyonlu hızlı sipariş girişi |
+| | `POST` | `/api/v1/waiter/request-bill`| Masadan hesap isteme aksiyonu |
+| | `POST` | `/api/v1/waiter/transfer-table`| Masayı ve aktif siparişi başka masaya taşıma |
 | **Ödemeler** | `POST` | `/api/v1/payments` | Nakit / Kredi Kartı tahsilatı yap |
 | | `GET` | `/api/v1/payments/order/:orderId` | Siparişe ait ödeme hareketleri |
 | **Yazıcı** | `POST` | `/api/v1/printer/receipt` | Müşteri adisyonu fişi bas (ESC/POS Raw 9100) |
@@ -130,3 +173,4 @@ npm test
 | | `GET` | `/api/v1/printer/queue` | Çevrimdışı yazıcı kuyruğunu incele |
 | **Denetim** | `GET` | `/api/v1/audit/logs` | Kriptografik audit log kayıtlarını listele |
 | | `GET` | `/api/v1/audit/verify` | SHA-256 hash zincirinin bozulmadığını doğrula |
+

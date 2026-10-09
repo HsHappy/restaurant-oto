@@ -138,6 +138,31 @@ export async function seedDatabase(): Promise<{
       ],
     },
     {
+      sku: 'GRL-01',
+      barcode: '8680001004',
+      name: 'Antrikot Izgara (250gr)',
+      catId: categories[0].id,
+      price: 550.0,
+      tax: 10.0,
+      station: PreparationStation.GRILL,
+      prepTime: 20,
+      ingredients: [
+        { invKey: 'beef', qty: 0.25, waste: 5.0 },
+      ],
+    },
+    {
+      sku: 'CLD-01',
+      barcode: '8680003002',
+      name: 'Mevsim Yeşillikleri Salata',
+      catId: categories[1].id,
+      price: 140.0,
+      tax: 10.0,
+      station: PreparationStation.COLD,
+      prepTime: 5,
+      ingredients: [],
+    },
+
+    {
       sku: 'SNK-01',
       barcode: '8680002001',
       name: 'Baharatlı Patates Kızartması',

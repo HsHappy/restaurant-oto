@@ -85,8 +85,39 @@ export class WebSocketGateway {
     eventBus.subscribe('PRINTER.OFFLINE_QUEUED', (event) => {
       this.broadcast('PRINTER_STATUS', { status: 'OFFLINE_QUEUED', ...(event.payload as object) });
     });
+
+    // KDS Events
+    eventBus.subscribe('KDS:NEW_TICKET', (event) => {
+      this.broadcast('KDS:NEW_TICKET', event.payload);
+    });
+
+    eventBus.subscribe('KDS:ITEM_STATUS_CHANGED', (event) => {
+      this.broadcast('KDS:ITEM_STATUS_CHANGED', event.payload);
+    });
+
+    eventBus.subscribe('KDS:ITEM_FIRED', (event) => {
+      this.broadcast('KDS:ITEM_FIRED', event.payload);
+    });
+
+    eventBus.subscribe('KDS:TICKET_READY', (event) => {
+      this.broadcast('KDS:TICKET_READY', event.payload);
+    });
+
+    // Waiter Terminal Events
+    eventBus.subscribe('WAITER:ITEM_READY', (event) => {
+      this.broadcast('WAITER:ITEM_READY', event.payload);
+    });
+
+    eventBus.subscribe('WAITER:ITEM_SERVED', (event) => {
+      this.broadcast('WAITER:ITEM_SERVED', event.payload);
+    });
+
+    eventBus.subscribe('WAITER:CALL_NOTIFICATION', (event) => {
+      this.broadcast('WAITER:CALL_NOTIFICATION', event.payload);
+    });
   }
 }
+
 
 
 export const wsGateway = WebSocketGateway.getInstance();

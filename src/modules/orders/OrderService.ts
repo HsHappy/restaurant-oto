@@ -22,6 +22,9 @@ export interface AddItemInput {
   productId: string;
   quantity: number;
   modifiers?: { name: string; extra_price: number }[];
+  customerNotes?: string;
+  status?: OrderItemStatus;
+  fireAt?: Date | null;
 }
 
 export class OrderService {
@@ -43,9 +46,9 @@ export class OrderService {
 
     const order = orderRes.rows[0];
 
-    // Fetch items with product details
+    // Fetch items with product details and prep time
     const itemsRes = await client.query<OrderItem>(
-      `SELECT oi.*, p.name as product_name, p.preparation_station
+      `SELECT oi.*, p.name as product_name, p.preparation_station, p.standard_prep_time_minutes
        FROM order_items oi
        JOIN products p ON oi.product_id = p.id
        WHERE oi.order_id = $1
@@ -63,6 +66,7 @@ export class OrderService {
 
     return order;
   }
+
 
 
   /**
@@ -123,11 +127,12 @@ export class OrderService {
       const totalPrice = Number((unitPrice * input.quantity).toFixed(2));
 
       const itemId = randomUUID();
+      const initialStatus = input.status || OrderItemStatus.QUEUED;
       await tx.query(
         `INSERT INTO order_items (
           id, order_id, product_id, quantity, unit_price, total_price,
-          status, is_complimentary, selected_modifiers, created_at
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, FALSE, $8, NOW())`,
+          status, is_complimentary, selected_modifiers, fire_at, customer_notes, created_at
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, FALSE, $8, $9, $10, NOW())`,
         [
           itemId,
           orderId,
@@ -135,10 +140,13 @@ export class OrderService {
           input.quantity,
           unitPrice,
           totalPrice,
-          OrderItemStatus.QUEUED,
+          initialStatus,
           JSON.stringify(modifiers),
+          input.fireAt || null,
+          input.customerNotes || null,
         ]
       );
+
 
       // Recalculate totals
       await this.recalculateOrderTotals(orderId, tx);
@@ -463,7 +471,7 @@ export class OrderService {
     );
     const order = orderRes.rows[0];
     const itemsRes = await client.query<OrderItem>(
-      `SELECT oi.*, p.name as product_name, p.preparation_station
+      `SELECT oi.*, p.name as product_name, p.preparation_station, p.standard_prep_time_minutes
        FROM order_items oi
        JOIN products p ON oi.product_id = p.id
        WHERE oi.order_id = $1

@@ -14,6 +14,7 @@ export enum OrderStatus {
 }
 
 export enum OrderItemStatus {
+  HOLD = 'HOLD',
   QUEUED = 'QUEUED',
   PREPARING = 'PREPARING',
   READY = 'READY',
@@ -39,4 +40,14 @@ export enum PreparationStation {
   BAR = 'BAR',
   OVEN = 'OVEN',
   COLD = 'COLD',
+  EXPEDITOR = 'EXPEDITOR',
 }
+
+export enum KdsAction {
+  HOLD = 'HOLD',
+  FIRE = 'FIRE',
+  PREPARING = 'PREPARING',
+  BUMP = 'BUMP',
+  RECALL = 'RECALL',
+}
+

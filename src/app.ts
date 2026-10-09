@@ -7,9 +7,14 @@ import { orderRoutes } from './modules/orders/OrderController.js';
 import { paymentRoutes } from './modules/payments/PaymentController.js';
 import { printerRoutes } from './modules/hardware/PrinterController.js';
 import { auditRoutes } from './modules/audit/AuditController.js';
+import { kdsRoutes } from './modules/kds/KdsController.js';
+import { waiterRoutes } from './modules/waiter/WaiterController.js';
 import { wsGateway } from './infrastructure/websocket/WebSocketGateway.js';
 import { db } from './infrastructure/database/db.js';
 import { networkPrinter } from './hardware/printer/NetworkPrinter.js';
+import fastifyStatic from '@fastify/static';
+import path from 'node:path';
+import fs from 'node:fs';
 
 export async function buildApp(): Promise<FastifyInstance> {
   const app = Fastify({
@@ -45,12 +50,32 @@ export async function buildApp(): Promise<FastifyInstance> {
     });
   });
 
+  // Serve Frontend Clients (KDS & Waiter Handheld)
+  const clientDir = path.resolve(process.cwd(), 'client');
+  if (fs.existsSync(clientDir)) {
+    await app.register(fastifyStatic, {
+      root: clientDir,
+      prefix: '/client/',
+    });
+
+    app.get('/kds', async (_req, reply) => {
+      return reply.sendFile('kds/index.html');
+    });
+
+    app.get('/waiter', async (_req, reply) => {
+      return reply.sendFile('waiter/index.html');
+    });
+  }
+
   // API v1 Routes
   await app.register(tableRoutes, { prefix: '/api/v1/tables' });
   await app.register(orderRoutes, { prefix: '/api/v1/orders' });
   await app.register(paymentRoutes, { prefix: '/api/v1/payments' });
   await app.register(printerRoutes, { prefix: '/api/v1/printer' });
   await app.register(auditRoutes, { prefix: '/api/v1/audit' });
+  await app.register(kdsRoutes, { prefix: '/api/v1/kds' });
+  await app.register(waiterRoutes, { prefix: '/api/v1/waiter' });
+
 
   // Centralized Error Handler
   app.setErrorHandler((error: any, _request, reply) => {

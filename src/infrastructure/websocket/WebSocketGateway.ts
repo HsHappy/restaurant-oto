@@ -115,6 +115,35 @@ export class WebSocketGateway {
     eventBus.subscribe('WAITER:CALL_NOTIFICATION', (event) => {
       this.broadcast('WAITER:CALL_NOTIFICATION', event.payload);
     });
+
+    // Phase 3: Aggregator, Fiscal & Sync Events
+    eventBus.subscribe('AGGREGATOR:NEW_ORDER', (event) => {
+      this.broadcast('AGGREGATOR:NEW_ORDER', event.payload);
+    });
+
+    eventBus.subscribe('AGGREGATOR:STATUS_UPDATED', (event) => {
+      this.broadcast('AGGREGATOR:STATUS_UPDATED', event.payload);
+    });
+
+    eventBus.subscribe('AGGREGATOR:STOCK_SYNC', (event) => {
+      this.broadcast('AGGREGATOR:STOCK_SYNC', event.payload);
+    });
+
+    eventBus.subscribe('FISCAL:E_ADISYON_CREATED', (event) => {
+      this.broadcast('FISCAL:E_ADISYON_CREATED', event.payload);
+    });
+
+    eventBus.subscribe('FISCAL:INVOICE_CREATED', (event) => {
+      this.broadcast('FISCAL:INVOICE_CREATED', event.payload);
+    });
+
+    eventBus.subscribe('SYNC:BATCH_PUSHED', (event) => {
+      this.broadcast('SYNC:BATCH_PUSHED', event.payload);
+    });
+
+    eventBus.subscribe('SYNC:NETWORK_STATE_CHANGED', (event) => {
+      this.broadcast('SYNC:NETWORK_STATE_CHANGED', event.payload);
+    });
   }
 }
 

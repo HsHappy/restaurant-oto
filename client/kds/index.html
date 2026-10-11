@@ -321,7 +321,7 @@
         const data = await res.json();
         if (data.success) {
           AudioEngine.playBump();
-          fetchTickets();
+          await fetchTickets();
         } else {
           alert('Geri alınacak son işlem bulunamadı.');
         }
@@ -426,7 +426,7 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ actorId: '00000000-0000-0000-0000-000000000001' })
         });
-        fetchTickets();
+        await fetchTickets();
       } catch (e) { console.error('Bump item error:', e); }
     }
 
@@ -438,7 +438,7 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ station: currentStation })
         });
-        fetchTickets();
+        await fetchTickets();
       } catch (e) { console.error('Bump ticket error:', e); }
     }
 

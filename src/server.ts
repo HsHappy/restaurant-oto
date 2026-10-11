@@ -6,11 +6,12 @@ import { db } from './infrastructure/database/db.js';
 import { seedDatabase } from './infrastructure/database/seed.js';
 import { networkPrinter } from './hardware/printer/NetworkPrinter.js';
 import { holdAndFireEngine } from './modules/kds/HoldAndFireEngine.js';
+import { syncEngine } from './modules/sync/SyncEngine.js';
 
 async function bootstrap() {
   console.log('========================================================');
-  console.log('  ENTERPRISE RMS - EDGE CORE NODE (FAZ 1 & FAZ 2)');
-  console.log('  Local POS, KDS & Waiter Handheld Real-Time Engine');
+  console.log('  ENTERPRISE RMS - EDGE CORE NODE (FAZ 1, 2 & 3)');
+  console.log('  POS, KDS, Aggregators, POS Terminal, Fiscal & Sync');
   console.log('========================================================');
 
   // 1. Initialize Database & Run Migrations
@@ -22,7 +23,10 @@ async function bootstrap() {
   // 3. Start KDS Hold & Fire Scheduler
   holdAndFireEngine.start(2500);
 
-  // 4. Build & start HTTP / WebSocket Server
+  // 4. Start Cloud Sync Scheduler
+  syncEngine.startPeriodicSync(5000);
+
+  // 5. Build & start HTTP / WebSocket Server
   const app = await buildApp();
   const port = parseInt(process.env.PORT || '3000', 10);
   const host = process.env.HOST || '0.0.0.0';
@@ -38,6 +42,7 @@ async function bootstrap() {
   const shutdown = async (signal: string) => {
     console.log(`\n[Edge Server] Received ${signal}. Shutting down gracefully...`);
     holdAndFireEngine.stop();
+    syncEngine.stopPeriodicSync();
     networkPrinter.close();
     await app.close();
     await db.close();

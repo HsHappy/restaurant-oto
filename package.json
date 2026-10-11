@@ -11,10 +11,13 @@
     "seed": "tsx src/infrastructure/database/seed.ts",
     "test:faz1": "tsx test/integration-test.ts",
     "test:faz2": "tsx test/faz2-kds-waiter.test.ts",
-    "test": "tsx test/integration-test.ts && tsx test/faz2-kds-waiter.test.ts",
-    "lint": "eslint src",
-    "lint:fix": "eslint src --fix",
-    "audit:code": "eslint src",
+    "test:faz3": "tsx test/phase3-integrations.test.ts",
+    "test:edge": "tsx test/faz2-edge-cases.test.ts",
+    "test:e2e": "playwright test",
+    "test": "tsx test/integration-test.ts && tsx test/faz2-kds-waiter.test.ts && tsx test/phase3-integrations.test.ts",
+    "lint": "eslint src test",
+    "lint:fix": "eslint src test --fix",
+    "audit:code": "eslint src test",
     "sonar": "sonar-scanner"
   },
   "keywords": [
@@ -41,6 +44,7 @@
     "zod": "^3.24.2"
   },
   "devDependencies": {
+    "@playwright/test": "^1.64.0",
     "@types/node": "^22.13.9",
     "@types/pg": "^8.11.11",
     "@types/ws": "^8.5.14",

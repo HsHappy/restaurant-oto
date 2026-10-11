@@ -147,6 +147,9 @@ export class KdsService {
     }
 
     const item = itemRes.rows[0];
+    if (item.status === OrderItemStatus.READY) {
+      return;
+    }
     const prevStatus = item.status;
 
     // Mark READY
@@ -186,6 +189,7 @@ export class KdsService {
     // Alert Waiters that this item is ready
     await eventBus.publish('WAITER:ITEM_READY', orderItemId, {
       orderId: item.order_id,
+      orderItemId,
       orderNumber: item.order_number,
       tableNumber: item.table_number,
       productName: item.product_name,
@@ -242,12 +246,13 @@ export class KdsService {
    * Recalls the last bumped item for a station (LIFO buffer)
    */
   public async recallLastBump(station: PreparationStation | 'EXPEDITOR'): Promise<{ recalled: boolean; itemId?: string }> {
-    const stationFilter = station === 'EXPEDITOR' ? '' : `AND station = '${station}'`;
+    const stationFilter = station === 'EXPEDITOR' ? '' : `AND l.station = '${station}'`;
 
     const logRes = await db.query(
-      `SELECT * FROM kds_station_logs 
-       WHERE action = 'BUMP' ${stationFilter}
-       ORDER BY created_at DESC 
+      `SELECT l.* FROM kds_station_logs l
+       JOIN order_items oi ON l.order_item_id = oi.id
+       WHERE l.action = 'BUMP' AND oi.status = 'READY' ${stationFilter}
+       ORDER BY l.created_at DESC 
        LIMIT 1`
     );
 
@@ -257,7 +262,16 @@ export class KdsService {
 
     const lastLog = logRes.rows[0];
     const itemId = lastLog.order_item_id;
-    const restoreStatus = lastLog.previous_status || OrderItemStatus.QUEUED;
+    let restoreStatus = lastLog.previous_status || OrderItemStatus.QUEUED;
+    if (restoreStatus === OrderItemStatus.READY) {
+      restoreStatus = OrderItemStatus.QUEUED;
+    }
+
+    // Mark previous bump log as recalled
+    await db.query(
+      `UPDATE kds_station_logs SET action = 'BUMP_RECALLED' WHERE id = $1`,
+      [lastLog.id]
+    );
 
     // Restore item status
     await db.query(

@@ -183,6 +183,85 @@ export class PrinterService {
 
     return await networkPrinter.sendRaw(host, port, builder.build(), 'DRAWER_PULSE');
   }
+
+  /**
+   * Generates and prints delivery ticket for online food aggregators (Getir, Yemeksepeti, Trendyol)
+   */
+  public async printDeliveryTicket(
+    platform: string,
+    orderNumber: string,
+    customer: { name: string; phone?: string; delivery_address?: string; notes?: string },
+    items: OrderItem[],
+    packagePin?: string,
+    grandTotal: number = 0,
+    options: { host?: string; port?: number } = {}
+  ): Promise<{ success: boolean; jobId: string; queued: boolean; message?: string }> {
+    const builder = new EscPosBuilder();
+
+    // Delivery Header
+    builder
+      .align('CENTER')
+      .size(2, 2)
+      .bold(true)
+      .line(`*** ${platform.toUpperCase()} PAKET SERVIS ***`)
+      .size(1, 1)
+      .bold(false)
+      .line(`SIPARIS NO: ${orderNumber}`)
+      .line('TARIH: ' + new Date().toLocaleString('tr-TR'))
+      .separator('=');
+
+    // Customer & Delivery Address
+    builder
+      .align('LEFT')
+      .bold(true)
+      .line(`Musteri : ${customer.name}`)
+      .line(`Telefon : ${customer.phone || 'Belirtilmedi'}`)
+      .bold(false);
+
+    if (customer.delivery_address) {
+      builder.line(`Adres   : ${customer.delivery_address}`);
+    }
+    if (customer.notes) {
+      builder.bold(true).line(`Musteri Notu: ${customer.notes}`).bold(false);
+    }
+    if (packagePin) {
+      builder.bold(true).size(2, 1).line(`TESLIMAT PIN KODU: ${packagePin}`).size(1, 1).bold(false);
+    }
+    builder.separator('-');
+
+    // Line Items
+    builder.line('SIPARIS DETAYI:');
+    for (const item of items) {
+      const itemText = `${item.quantity}x ${item.product_name || 'Urun'}`;
+      const priceText = `${Number(item.total_price).toFixed(2)} TL`;
+      builder.columns(itemText, priceText);
+
+      if (item.selected_modifiers && item.selected_modifiers.length > 0) {
+        for (const mod of item.selected_modifiers) {
+          builder.line(`  + ${mod.name}`);
+        }
+      }
+      if (item.customer_notes) {
+        builder.line(`  Not: ${item.customer_notes}`);
+      }
+    }
+
+    builder.separator('=');
+    builder
+      .size(2, 2)
+      .bold(true)
+      .columns('TOPLAM:', `${Number(grandTotal).toFixed(2)} TL`)
+      .size(1, 1)
+      .bold(false);
+
+    builder.separator('-');
+    builder.align('CENTER').line('Lutfen kurye tesliminde pini kontrol ediniz.').feed(2).cut();
+
+    const host = options.host || this.defaultHost;
+    const port = options.port || this.defaultPort;
+
+    return await networkPrinter.sendRaw(host, port, builder.build(), 'DELIVERY_TICKET');
+  }
 }
 
 export const printerService = new PrinterService();

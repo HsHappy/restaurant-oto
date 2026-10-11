@@ -1,10 +1,9 @@
 import { db, IDbClient } from '../../infrastructure/database/db.js';
-import { Order, OrderItem, Product, DiningTable } from '../../core/domain/entities/index.js';
+import { Order, OrderItem, Product } from '../../core/domain/entities/index.js';
 import {
   OrderStatus,
   OrderItemStatus,
   OrderType,
-  TableStatus,
 } from '../../core/domain/enums/index.js';
 import {
   OrderNotFoundError,
@@ -15,8 +14,8 @@ import {
 } from '../../core/domain/errors/DomainError.js';
 import { eventBus } from '../../infrastructure/bus/LocalEventBus.js';
 import { auditService } from '../audit/AuditService.js';
-import { SplitBillEngine, EqualSplitResult } from './SplitBillEngine.js';
-import { randomUUID } from 'node:crypto';
+import { SplitBillEngine } from './SplitBillEngine.js';
+import { randomUUID, randomInt } from 'node:crypto';
 
 export interface AddItemInput {
   productId: string;
@@ -80,7 +79,7 @@ export class OrderService {
   ): Promise<Order> {
     const id = randomUUID();
     const datePart = new Date().toISOString().slice(0, 10).replace(/-/g, '');
-    const randPart = Math.floor(1000 + Math.random() * 9000);
+    const randPart = randomInt(1000, 10000);
     const orderNumber = `ORD-${datePart}-${randPart}`;
 
     await db.query(
@@ -165,7 +164,7 @@ export class OrderService {
       );
 
       const updatedOrder = await this.getOrderByIdInternal(orderId, tx);
-      const newItem = updatedOrder.items?.find((i) => i.id === itemId)!;
+      const newItem = (updatedOrder.items || []).find((i) => i.id === itemId)!;
 
       // Event notification
       await eventBus.publish('ORDER_UPDATED', orderId, {
@@ -379,8 +378,7 @@ export class OrderService {
       return await db.transaction(async (tx) => {
         // 1. Create new split order
         const newOrderId = randomUUID();
-        const datePart = new Date().toISOString().slice(0, 10).replace(/-/g, '');
-        const randPart = Math.floor(1000 + Math.random() * 9000);
+        const randPart = randomInt(1000, 10000);
         const newOrderNumber = `${order.order_number}-SPLIT-${randPart}`;
 
         await tx.query(

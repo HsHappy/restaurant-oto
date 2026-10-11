@@ -1,11 +1,10 @@
 import net from 'node:net';
 import { randomUUID } from 'node:crypto';
-import { EscPosBuilder } from './EscPosBuilder.js';
 import { eventBus } from '../../infrastructure/bus/LocalEventBus.js';
 
 export interface PrintJob {
   id: string;
-  type: 'RECEIPT' | 'KITCHEN' | 'DRAWER_PULSE';
+  type: 'RECEIPT' | 'KITCHEN' | 'DRAWER_PULSE' | 'DELIVERY_TICKET';
   targetHost: string;
   targetPort: number;
   data: Buffer;
@@ -36,7 +35,7 @@ export class NetworkPrinter {
     host: string,
     port: number,
     data: Buffer,
-    type: 'RECEIPT' | 'KITCHEN' | 'DRAWER_PULSE' = 'RECEIPT'
+    type: 'RECEIPT' | 'KITCHEN' | 'DRAWER_PULSE' | 'DELIVERY_TICKET' = 'RECEIPT'
   ): Promise<{ success: boolean; jobId: string; queued: boolean; message?: string }> {
     const jobId = randomUUID();
 

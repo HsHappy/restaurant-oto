@@ -4,7 +4,7 @@ import { orderService } from '../orders/OrderService.js';
 import { tableService } from '../tables/TableService.js';
 import { auditService } from '../audit/AuditService.js';
 import { holdAndFireEngine } from '../kds/HoldAndFireEngine.js';
-import { TableStatus, OrderStatus, OrderItemStatus } from '../../core/domain/enums/index.js';
+import { TableStatus, OrderItemStatus } from '../../core/domain/enums/index.js';
 import {
   TableNotFoundError,
   OrderNotFoundError,

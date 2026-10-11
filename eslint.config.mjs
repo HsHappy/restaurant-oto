@@ -24,7 +24,8 @@ export default [
       '@typescript-eslint/no-explicit-any': 'warn',
       '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
       'sonarjs/cognitive-complexity': ['warn', 15],
-      'sonarjs/no-duplicate-string': 'off'
+      'sonarjs/no-duplicate-string': 'off',
+      'sonarjs/no-empty-test-file': 'off'
     }
   }
 ];

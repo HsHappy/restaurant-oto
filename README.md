@@ -173,4 +173,46 @@ Faz 2 kapsamında mutfak operasyonlarını ve salon garson yönetimini sıfır g
 | | `GET` | `/api/v1/printer/queue` | Çevrimdışı yazıcı kuyruğunu incele |
 | **Denetim** | `GET` | `/api/v1/audit/logs` | Kriptografik audit log kayıtlarını listele |
 | | `GET` | `/api/v1/audit/verify` | SHA-256 hash zincirinin bozulmadığını doğrula |
+| **Pazar Yeri (Aggregators)**| `POST` | `/api/v1/aggregators/webhooks/:platform` | Yemeksepeti, Getir, Trendyol webhook alıcısı |
+| | `POST` | `/api/v1/aggregators/simulate-order` | Geliştirici sipariş simülatörü |
+| | `POST` | `/api/v1/aggregators/orders/:id/status` | Sipariş/kurye durum güncellemesi (`RIDER_DISPATCH`, `DELIVERED`) |
+| | `POST` | `/api/v1/aggregators/stock-sync` | Dinamik 86'lama (Out-of-Stock senkronizasyonu) |
+| | `GET` | `/api/v1/aggregators/orders` | Dış paket siparişlerini listele |
+| **Banka POS Terminali** | `POST` | `/api/v1/terminal/sale` | Cihaza tutar gönder ve satışı tamamla (`00 - Onaylandı`) |
+| | `POST` | `/api/v1/terminal/settlement` | Gün Sonu Mutabakatı (Z Raporu kapatma) |
+| | `POST` | `/api/v1/terminal/virtual-pos/session` | Masadan QR ödeme oturumu aç |
+| | `POST` | `/api/v1/terminal/virtual-pos/charge` | Sanal POS 3D Secure 2.0 kart tahsilatı |
+| | `GET` | `/api/v1/terminal/logs` | Terminal banka slip ve provizyon logları |
+| **Mali e-Dönüşüm (GİB)** | `POST` | `/api/v1/fiscal/eadisyon/:orderId` | GİB standardında UBL-TR 1.2 e-Adisyon ve QR üret |
+| | `POST` | `/api/v1/fiscal/invoice/:orderId` | e-Fatura / e-Arşiv fatura kes ve GİB'e ilet |
+| | `GET` | `/api/v1/fiscal/documents/:id` | Mali belge detayını ve QR kodunu getir |
+| | `GET` | `/api/v1/fiscal/documents/:id/xml` | Ham UBL-TR 1.2 XML belgesini indir |
+| | `GET` | `/api/v1/fiscal/taxpayer-check/:vkn` | TCKN/VKN e-Fatura mükellefiyet sorgusu |
+| **Bulut Senkronizasyon** | `POST` | `/api/v1/sync/push` | Yerel outbox olaylarını buluta batch ilet |
+| | `POST` | `/api/v1/sync/pull` | Buluttan menü/fiyat güncellemesi çek (LWW CRDT) |
+| | `POST` | `/api/v1/sync/network-mode` | Çevrimdışı/çevrimiçi ağ modunu değiştir |
+| | `GET` | `/api/v1/sync/status` | Ağ durumu, kuyruk boyutu ve checkpoint raporu |
+| | `GET` | `/api/v1/sync/stock-discrepancies` | Negatif stok toleransı ve kritik stok uyarıları |
+
+---
+
+## 🌐 FAZ 3: Pazar Yeri, Banka POS, GİB e-Adisyon & Bulut Senkronizasyon
+
+1. **Pazar Yeri Entegratörü (`src/modules/aggregators`):**
+   - Yemeksepeti, Getir Yemek, Trendyol Yemek ve Migros Yemek siparişlerini tek bir `CanonicalOrder` nesnesine dönüştürür.
+   - Otomatik kabul kuralıyla doğrudan mutfak KDS'ine (`QUEUED`) düşürür ve paket servis fişini (`DELIVERY_TICKET`) yazdırır.
+   - Idempotency korumasıyla mükerrer webhook yüklerini engeller.
+   - Dinamik 86'lama (Out-of-Stock Sync) ile tükenen ürünleri tüm platformlarda anında satışa kapatır.
+2. **Ödeme Terminali & Banka POS Donanım Köprüsü (`src/modules/payment-terminals`):**
+   - GMP3, BKM TechPOS ve O-POS protokol uyumlu ikili (binary STX/ETX/LRC) donanım çerçeveleme.
+   - Satış (`SALE`), İptal (`VOID`) ve Gün Sonu Mutabakatı (`SETTLEMENT`).
+   - Masadan temassız QR ödeme için 3D Secure 2.0 hazır Sanal POS motoru.
+3. **Mali Mühür & GİB e-Dönüşüm (`src/modules/fiscal`):**
+   - GİB e-Adisyon standartlarına tam uyumlu **UBL-TR 1.2 XML** belgesi ve GİB zorunlu Mali Karekod (QR Code) üretimi.
+   - TCKN/VKN mükellefiyet sorgusu ile otomatik e-Fatura / e-Arşiv ayrımı.
+4. **Offline-First Bulut Senkronizasyon Motoru (`src/modules/sync`):**
+   - İnternet kesildiğinde sıfır veri kaybı; olaylar yerel `outbox_events` tablosunda saklanır.
+   - Ağ geri geldiğinde güvenli batch push ile buluta iletilir.
+   - Downstream güncellemelerde Last-Write-Wins (LWW) ve Additive CRDT ile otomatik çakışma çözümü.
+
 

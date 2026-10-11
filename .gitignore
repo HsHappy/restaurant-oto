@@ -5,3 +5,6 @@ dist/
 .DS_Store
 coverage/
 .vscode/
+test-results/
+playwright-report/
+.antigravity/

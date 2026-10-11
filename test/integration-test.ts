@@ -1,7 +1,6 @@
 import { buildApp } from '../src/app.js';
 import { db } from '../src/infrastructure/database/db.js';
 import { seedDatabase } from '../src/infrastructure/database/seed.js';
-import { auditService } from '../src/modules/audit/AuditService.js';
 import { TableStatus } from '../src/core/domain/enums/index.js';
 import { networkPrinter } from '../src/hardware/printer/NetworkPrinter.js';
 

@@ -9,6 +9,10 @@ import { printerRoutes } from './modules/hardware/PrinterController.js';
 import { auditRoutes } from './modules/audit/AuditController.js';
 import { kdsRoutes } from './modules/kds/KdsController.js';
 import { waiterRoutes } from './modules/waiter/WaiterController.js';
+import { aggregatorRoutes } from './modules/aggregators/AggregatorController.js';
+import { posTerminalRoutes } from './modules/payment-terminals/PosTerminalController.js';
+import { fiscalRoutes } from './modules/fiscal/FiscalController.js';
+import { syncRoutes } from './modules/sync/SyncController.js';
 import { wsGateway } from './infrastructure/websocket/WebSocketGateway.js';
 import { db } from './infrastructure/database/db.js';
 import { networkPrinter } from './hardware/printer/NetworkPrinter.js';
@@ -75,6 +79,10 @@ export async function buildApp(): Promise<FastifyInstance> {
   await app.register(auditRoutes, { prefix: '/api/v1/audit' });
   await app.register(kdsRoutes, { prefix: '/api/v1/kds' });
   await app.register(waiterRoutes, { prefix: '/api/v1/waiter' });
+  await app.register(aggregatorRoutes, { prefix: '/api/v1/aggregators' });
+  await app.register(posTerminalRoutes, { prefix: '/api/v1/terminal' });
+  await app.register(fiscalRoutes, { prefix: '/api/v1/fiscal' });
+  await app.register(syncRoutes, { prefix: '/api/v1/sync' });
 
 
   // Centralized Error Handler

@@ -51,3 +51,65 @@ export enum KdsAction {
   RECALL = 'RECALL',
 }
 
+export enum AggregatorPlatform {
+  YEMEKSEPETI = 'YEMEKSEPETI',
+  GETIR = 'GETIR',
+  TRENDYOL = 'TRENDYOL',
+  MIGROS_YEMEK = 'MIGROS_YEMEK',
+}
+
+export enum AggregatorOrderStatus {
+  NEW = 'NEW',
+  ACCEPTED = 'ACCEPTED',
+  PREPARING = 'PREPARING',
+  RIDER_DISPATCH = 'RIDER_DISPATCH',
+  PICKED_UP = 'PICKED_UP',
+  DELIVERED = 'DELIVERED',
+  CANCELLED = 'CANCELLED',
+}
+
+export enum FiscalDocumentType {
+  E_ADISYON = 'E_ADISYON',
+  E_FATURA = 'E_FATURA',
+  E_ARSIV = 'E_ARSIV',
+}
+
+export enum GibDocumentStatus {
+  DRAFT = 'DRAFT',
+  QUEUED = 'QUEUED',
+  PROCESSING = 'PROCESSING',
+  SUCCESS = 'SUCCESS',
+  FAILED = 'FAILED',
+}
+
+export enum TerminalCommandType {
+  SALE = 'SALE',
+  VOID = 'VOID',
+  REFUND = 'REFUND',
+  SETTLEMENT = 'SETTLEMENT',
+}
+
+export enum TerminalConnectionType {
+  TCP = 'TCP',
+  SERIAL = 'SERIAL',
+  VIRTUAL_POS = 'VIRTUAL_POS',
+}
+
+export enum SyncDirection {
+  UPSTREAM = 'UPSTREAM',
+  DOWNSTREAM = 'DOWNSTREAM',
+}
+
+export enum SyncStatus {
+  PENDING = 'PENDING',
+  SYNCED = 'SYNCED',
+  CONFLICT = 'CONFLICT',
+  FAILED = 'FAILED',
+}
+
+export enum SyncType {
+  UPSTREAM_EVENTS = 'UPSTREAM_EVENTS',
+  DOWNSTREAM_CATALOG = 'DOWNSTREAM_CATALOG',
+  DOWNSTREAM_PRICING = 'DOWNSTREAM_PRICING',
+}
+

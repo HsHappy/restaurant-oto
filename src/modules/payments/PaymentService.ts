@@ -1,5 +1,5 @@
 import { db } from '../../infrastructure/database/db.js';
-import { Payment, Order, DiningTable } from '../../core/domain/entities/index.js';
+import { Payment, Order } from '../../core/domain/entities/index.js';
 import { PaymentMethod, OrderStatus, TableStatus } from '../../core/domain/enums/index.js';
 import {
   OrderNotFoundError,

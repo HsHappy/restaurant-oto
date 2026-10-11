@@ -1,5 +1,5 @@
 import { InvalidSplitError } from '../../core/domain/errors/DomainError.js';
-import { Order, OrderItem } from '../../core/domain/entities/index.js';
+import { OrderItem } from '../../core/domain/entities/index.js';
 
 export interface EqualSplitResult {
   parts: number;

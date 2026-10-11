@@ -8,7 +8,7 @@ import {
 } from '../../core/domain/errors/DomainError.js';
 import { eventBus } from '../../infrastructure/bus/LocalEventBus.js';
 import { auditService } from '../audit/AuditService.js';
-import { randomUUID } from 'node:crypto';
+import { randomUUID, randomInt } from 'node:crypto';
 
 export class TableService {
   // Allowed state machine transitions
@@ -97,8 +97,6 @@ export class TableService {
       throw new InvalidTableStateTransitionError(currentStatus, newStatus);
     }
 
-    const beforeState = { ...table };
-
     // Clear active_order_id if moving to AVAILABLE
     const activeOrderId = newStatus === TableStatus.AVAILABLE ? null : table.active_order_id;
 
@@ -160,7 +158,7 @@ export class TableService {
 
       const orderId = randomUUID();
       const datePart = new Date().toISOString().slice(0, 10).replace(/-/g, '');
-      const randPart = Math.floor(1000 + Math.random() * 9000);
+      const randPart = randomInt(1000, 10000);
       const orderNumber = `${orderNumberPrefix}-${datePart}-${randPart}`;
 
       // Insert new Order

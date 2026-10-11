@@ -23,7 +23,12 @@ export class EscPosBuilder {
 
   /** ESC a n : Select justification (0 = Left, 1 = Center, 2 = Right) */
   public align(alignment: 'LEFT' | 'CENTER' | 'RIGHT'): this {
-    const val = alignment === 'CENTER' ? 1 : alignment === 'RIGHT' ? 2 : 0;
+    let val = 0;
+    if (alignment === 'CENTER') {
+      val = 1;
+    } else if (alignment === 'RIGHT') {
+      val = 2;
+    }
     this.buffer.push(Buffer.from([EscPosBuilder.ESC, 0x61, val]));
     return this;
   }

@@ -1,6 +1,6 @@
 import { db } from '../../infrastructure/database/db.js';
 import { eventBus } from '../../infrastructure/bus/LocalEventBus.js';
-import { OrderItemStatus, PreparationStation } from '../../core/domain/enums/index.js';
+import { OrderItemStatus } from '../../core/domain/enums/index.js';
 
 export interface PacedItemPlan {
   productId: string;
